@@ -27,35 +27,22 @@ __author__ = 'Stephen Gallagher <sgallagh@redhat.com>'
 import platform
 import dnf
 
+from depchase.util import get_multi_arch
 from depchase.util import splitFilename
 
 from depchase.exceptions import NoSuchPackageException
 from depchase.exceptions import TooManyPackagesException
 
-multi_arch = None
-primary_arch = platform.machine()
-if primary_arch == "x86_64":
-    multi_arch = "i686"
 
-def get_pkg_by_name(q, pkgname, arch=None):
+def get_pkg_by_name(q, pkgname, arch):
     """
     Try to find the package name as primary_arch, multi_arch and then noarch.
     This function will return exactly one result. If it finds zero or multiple
     packages that match the name, it will throw an error.
     """
 
-    # If we were requested to search for a specific architecture
-    if arch:
-        matched = q.filter(name=pkgname, latest=True, arch=arch)
-        if len(matched) > 1:
-            raise TooManyPackagesException(pkgname)
-        if len(matched) == 1:
-            # Exactly one package matched.
-            return matched[0]
-        raise NoSuchPackageException(pkgname)
-
-    # Otherwise, check the primary arch, multi-arch and noarch packages
-    matched = q.filter(name=pkgname, latest=True, arch=primary_arch)
+    # Check the primary arch, multi-arch and noarch packages
+    matched = q.filter(name=pkgname, latest=True, arch=arch)
     if len(matched) > 1:
         raise TooManyPackagesException(pkgname)
 
@@ -67,6 +54,7 @@ def get_pkg_by_name(q, pkgname, arch=None):
         # yet.
         return matched[0]
 
+    multi_arch = get_multi_arch(arch)
     if multi_arch:
         matched = q.filter(name=pkgname, latest=True, arch=multi_arch)
         if len(matched) > 1:

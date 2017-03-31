@@ -25,12 +25,14 @@
 __author__ = 'Stephen Gallagher <sgallagh@redhat.com>'
 
 
-def split_pkgname(name):
+def split_pkgname(name, architecture=None):
     splitname = name.rsplit("#", 2)
     pkgname = splitname[0]
     arch = None
     if len(splitname) > 1:
         arch = splitname[1]
+    else:
+        arch = architecture
 
     return (pkgname, arch)
 

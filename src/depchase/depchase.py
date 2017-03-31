@@ -110,7 +110,7 @@ def neededby(pkgnames, hint, filter, whatreqs, recommends,
     dependencies = {}
     ambiguities = []
     for fullpkgname in pkgnames:
-        (pkgname, pkgarch) = split_pkgname(fullpkgname)
+        (pkgname, pkgarch) = split_pkgname(fullpkgname, arch)
 
         if pkgname in filter:
             # Skip this if we explicitly filtered it out
