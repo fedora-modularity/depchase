@@ -64,7 +64,6 @@ Specify a package that you want to identify what pulls it into the complete
 set. This option may be specified multiple times.
 """)
 @click.option('--recommends/--no-recommends', default=True)
-@click.option('--full-name/--no-full-name', default=False)
 @click.option('--pick-first/--no-pick-first', default=False,
               help="""
 If multiple packages could satisfy a dependency and no --hint package will
@@ -97,7 +96,7 @@ sorted. It is recommended to use --hint instead, where practical.
               help="The file to contain the long version of the detected "
                    "dependencies. (Package name, version, architecture, "
                    "etc.)")
-def neededby(pkgnames, hint, filter, whatreqs, recommends, full_name,
+def neededby(pkgnames, hint, filter, whatreqs, recommends,
              pick_first, os, version, arch, milestone,
              binary_short_file, binary_full_file,
              source_short_file, source_full_file):
@@ -146,3 +145,4 @@ def neededby(pkgnames, hint, filter, whatreqs, recommends, full_name,
               file=sys.stderr)
         pp = pprint.PrettyPrinter(indent=4)
         pp.pprint(ambiguities)
+
