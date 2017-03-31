@@ -1,0 +1,7 @@
+/build
+/dist
+*~
+/src/depchase.egg-info
+*py[oc]
+*.swp
+/src/depchase/__pycache__
