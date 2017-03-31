@@ -96,11 +96,11 @@ def get_srpm_for_package(query, pkg):
     raise NoSuchPackageException(pkg.name)
 
 
-def get_srpm_for_package_name(query, pkgname):
+def get_srpm_for_package_name(query, pkgname, arch):
     """
     For a given package, retrieve a reference to its source RPM
     """
-    pkg = get_pkg_by_name(query, pkgname)
+    pkg = get_pkg_by_name(query, pkgname, arch)
 
     return get_srpm_for_package(query, pkg)
 

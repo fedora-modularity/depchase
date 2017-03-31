@@ -146,3 +146,45 @@ def neededby(pkgnames, hint, filter, whatreqs, recommends,
         pp = pprint.PrettyPrinter(indent=4)
         pp.pprint(ambiguities)
 
+
+@main.command(short_help="Get Source RPM")
+@click.argument('pkgnames', nargs=-1)
+@click.option('--full-name/--no-full-name', default=False)
+@click.option('--os', default='Fedora',
+              help="Specify the operating system.")
+@click.option('--version', default=25,
+              help="Specify the version of the OS sampledata to compare "
+                   "against.")
+@click.option('--arch', default='x86_64',
+              help="Specify the CPU architecture.")
+@click.option('--milestone', default=None,
+              help="Specify the pre-release milestone. If not provided, "
+                   "the final release will be used.")
+def getsourcerpm(pkgnames, full_name, os, version, arch, milestone):
+    """
+    Look up the SRPMs from which these binary RPMs were generated.
+
+    This list will be displayed deduplicated and sorted.
+    """
+    query = prep_repositories(os, version, milestone, arch)
+
+    srpm_names = {}
+    for fullpkgname in pkgnames:
+        (pkgname, pkgarch) = split_pkgname(fullpkgname, arch)
+
+        pkg = get_srpm_for_package_name(query, pkgname, pkgarch)
+
+        srpm_names[pkg.name] = pkg
+
+    for key in sorted(srpm_names, key=srpm_names.get):
+        printpkg = srpm_names[key]
+        if (full_name):
+            print("%d:%s-%s-%s.%s" % (
+                  printpkg.epoch,
+                  printpkg.name,
+                  printpkg.version,
+                  printpkg.release,
+                  printpkg.arch))
+        else:
+            print("%s" % printpkg.name)
+
