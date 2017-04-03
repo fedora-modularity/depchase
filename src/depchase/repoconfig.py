@@ -26,15 +26,12 @@ __author__ = 'Stephen Gallagher <sgallagh@redhat.com>'
 
 
 import dnf
+import sys
+
 from distutils.version import LooseVersion
 if LooseVersion(dnf.const.VERSION) < LooseVersion('2.0.0'):
     raise NotImplementedError("DNF 2.x required.")
 
-
-# Constants for milestones (leaving room for multiple releases in the future)
-MILESTONE_ALPHA = 10
-MILESTONE_BETA = 20
-MILESTONE_FINAL = 30
 
 def _is_secondary_arch(arch):
     if arch in ('x86_64', 'armhfp', 'i386'):
@@ -42,7 +39,7 @@ def _is_secondary_arch(arch):
     return True
 
 
-def _setup_repo(base, reponame, URI, expire):
+def _setup_repo(base, reponame, URI, expire, force_expiration=False):
     repo = dnf.repo.Repo(reponame, base.conf)
 
     repo.mirrorlist = None
@@ -54,7 +51,9 @@ def _setup_repo(base, reponame, URI, expire):
     base.repos.add(repo)
     repo.load()
     repo.enable()
-    repo._md_expire_cache()
+
+    if force_expiration:
+        repo._md_expire_cache()
 
 
 def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
@@ -99,21 +98,29 @@ def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
                 365 * 24 * 60 * 60)
 
     # Override repositories
-    override_source_uri = \
-        "https://fedorapeople.org/groups/modularity/repos/" \
-        "fedora/gencore-override/%s/source/tree" % version_path
-    # Always update the override repodata
-    _setup_repo(base,
-                'depchase-%s-override-source' % version_path,
-                override_source_uri, 0)
+    try:
+        override_source_uri = \
+            "https://fedorapeople.org/groups/modularity/repos/" \
+            "fedora/gencore-override/%s/source/tree" % version_path
+        # Always update the override repodata
+        _setup_repo(base,
+                    'depchase-%s-override-source' % version_path,
+                    override_source_uri, 0)
 
-    override_binary_uri = \
-        "https://fedorapeople.org/groups/modularity/repos/" \
-        "fedora/gencore-override/%s/%s/os" % (version_path, arch)
-    # Always update the override repodata
-    _setup_repo(base,
-                'depchase-%s-override' % version_path,
-                override_binary_uri, 0)
+        override_binary_uri = \
+            "https://fedorapeople.org/groups/modularity/repos/" \
+            "fedora/gencore-override/%s/%s/os" % (version_path, arch)
+        # Always update the override repodata
+        _setup_repo(base,
+                    'depchase-%s-override' % version_path,
+                    override_binary_uri, 0)
+    except dnf.exceptions.RepoError:
+        # Likely no override repo exists
+        # Print a warning and continue
+        print("WARNING: override repo has not been configured for this "
+              "version/arch combination. Proceeding with official repos "
+              "only.", file=sys.stderr)
+
     base.fill_sack(load_system_repo=False, load_available_repos=True)
 
     return base.sack.query()
