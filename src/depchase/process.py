@@ -25,8 +25,9 @@
 __author__ = 'Stephen Gallagher <sgallagh@redhat.com>'
 
 from depchase.queries import get_requirements
+from depchase.queries import get_srpm_for_package
 
-def recurse_package_deps(pkg, dependencies, ambiguities,
+def recurse_package_deps(pkg, arch, dependencies, ambiguities,
                          query, hints, filters, whatreqs,
                          pick_first, follow_recommends):
     """
@@ -39,38 +40,39 @@ def recurse_package_deps(pkg, dependencies, ambiguities,
     dependencies[depname] = pkg
 
     # Process Requires:
-    deps = get_requirements(pkg, pkg.requires, dependencies,
-                            ambiguities, query, hints,
-                            filters, whatreqs,
-                            pick_first)
+    deps = get_requirements(pkg, pkg.requires, arch,
+                            dependencies, ambiguities,
+                            query, hints, filters,
+                            whatreqs, pick_first)
 
     try:
         # Process Requires(pre|post)
-        prereqs = get_requirements(pkg, pkg.requires_pre, dependencies,
-                                   ambiguities, query, hints,
-                                   filters, whatreqs,
-                                   pick_first)
+        prereqs = get_requirements(pkg, pkg.requires_pre, arch,
+                                   dependencies, ambiguities,
+                                   query, hints, filters,
+                                   whatreqs, pick_first)
         deps.extend(prereqs)
     except AttributeError:
         print("DNF 2.x required.", file=sys.stderr)
         sys.exit(1)
 
     if follow_recommends:
-        recommends = get_requirements(pkg, pkg.recommends, dependencies,
-                                      ambiguities, query, hints,
-                                      filters, whatreqs,
-                                      pick_first)
+        recommends = get_requirements(pkg, pkg.recommends, arch,
+                                      dependencies, ambiguities,
+                                      query, hints, filters,
+                                      whatreqs, pick_first)
         deps.extend(recommends)
 
     for dep in deps:
-        recurse_package_deps(dep, dependencies, ambiguities, query,
+        recurse_package_deps(dep, arch, dependencies, ambiguities, query,
                              hints, filters, whatreqs,
                              pick_first, follow_recommends)
 
 
-def recurse_self_host(binary_pkg, binaries, sources,
-                      ambiguities, query, hints,
-                      filters, whatreqs,
+def recurse_self_host(binary_pkg, arch,
+                      binaries, sources,
+                      ambiguities, query,
+                      hints, filters, whatreqs,
                       pick_first, follow_recommends):
     """
     Recursively determine all build dependencies for this package
@@ -84,19 +86,19 @@ def recurse_self_host(binary_pkg, binaries, sources,
     binaries[depname] = binary_pkg
 
     # Process strict Requires:
-    deps = get_requirements(binary_pkg, binary_pkg.requires, binaries,
-                            ambiguities, query, hints,
+    deps = get_requirements(binary_pkg, binary_pkg.requires, arch,
+                            binaries, ambiguities, query, hints,
                             filters, whatreqs, pick_first)
 
     # Process Requires(pre|post):
-    prereqs = get_requirements(binary_pkg, binary_pkg.requires_pre,
+    prereqs = get_requirements(binary_pkg, binary_pkg.requires_pre, arch,
                                binaries, ambiguities, query, hints,
                                filters, whatreqs, pick_first)
     deps.extend(prereqs)
 
     if follow_recommends:
         # Process Recommends:
-        recommends = get_requirements(binary_pkg, binary_pkg.recommends,
+        recommends = get_requirements(binary_pkg, binary_pkg.recommends, arch,
                                       binaries, ambiguities, query, hints,
                                       filters, whatreqs, pick_first)
         deps.extend(recommends)
@@ -109,14 +111,15 @@ def recurse_self_host(binary_pkg, binaries, sources,
         sources[source_pkg.name] = source_pkg
 
         # Get the BuildRequires for this Source RPM
-        buildreqs = get_requirements(source_pkg, source_pkg.requires,
+        buildreqs = get_requirements(source_pkg, source_pkg.requires, arch,
                                      binaries, ambiguities, query, hints,
                                      filters, whatreqs, pick_first)
         deps.extend(buildreqs)
 
     for dep in deps:
-        recurse_self_host(dep, binaries, sources, ambiguities, query, hints,
-                          filters, whatreqs, pick_first, follow_recommends)
+        recurse_self_host(dep, arch, binaries, sources, ambiguities, query,
+                          hints, filters, whatreqs, pick_first,
+                          follow_recommends)
 
 
 def resolve_ambiguity(dependencies, ambiguity):

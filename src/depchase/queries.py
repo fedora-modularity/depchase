@@ -24,8 +24,8 @@
 
 __author__ = 'Stephen Gallagher <sgallagh@redhat.com>'
 
-import platform
 import dnf
+import sys
 
 from depchase.util import get_multi_arch
 from depchase.util import splitFilename
@@ -36,7 +36,7 @@ from depchase.exceptions import TooManyPackagesException
 
 def get_pkg_by_name(q, pkgname, arch):
     """
-    Try to find the package name as primary_arch, multi_arch and then noarch.
+    Try to find the package name as primary arch, multi-arch and then noarch.
     This function will return exactly one result. If it finds zero or multiple
     packages that match the name, it will throw an error.
     """
@@ -117,16 +117,21 @@ def _append_requirement(reqs, parent, pkg, filters, whatreqs):
     if filters is None or pkg.name not in filters:
         reqs.append(pkg)
 
-def get_requirements(parent, reqs, dependencies, ambiguities,
+def get_requirements(parent, reqs, arch, dependencies, ambiguities,
                      query, hints, filters, whatreqs, pick_first):
     """
     Share code for recursing into requires or recommends
     """
     requirements = []
 
+    multi_arch = get_multi_arch(arch)
+
     for require in reqs:
+        print("%s requires [%s], checking %s then %s" % (
+              parent.name, require,
+              arch, multi_arch))
         required_packages = query.filter(provides=require, latest=True,
-                                         arch=primary_arch)
+                                         arch=arch)
 
         # Check for multi-arch packages satisfying it
         if len(required_packages) == 0 and multi_arch:
@@ -173,8 +178,9 @@ def get_requirements(parent, reqs, dependencies, ambiguities,
                     # The user instructed processing to just take the first
                     # entry in the list.
                     for rpkg in required_packages:
-                        if rpkg.arch == 'noarch' or rpkg.arch == \
-                                primary_arch or rpkg.arch == multi_arch:
+                        if rpkg.arch == 'noarch' or \
+                           rpkg.arch == arch or \
+                           rpkg.arch == multi_arch:
                             _append_requirement(requirements, parent, rpkg,
                                                filters, whatreqs)
                             break
