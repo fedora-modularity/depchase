@@ -127,9 +127,6 @@ def get_requirements(parent, reqs, arch, dependencies, ambiguities,
     multi_arch = get_multi_arch(arch)
 
     for require in reqs:
-        print("%s requires [%s], checking %s then %s" % (
-              parent.name, require,
-              arch, multi_arch))
         required_packages = query.filter(provides=require, latest=True,
                                          arch=arch)
 
