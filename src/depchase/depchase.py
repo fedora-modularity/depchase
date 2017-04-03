@@ -76,7 +76,7 @@ sorted. It is recommended to use --hint instead, where practical.
 @click.option('--os', default='Fedora',
               help="Specify the operating system.")
 @click.option('--version', default=25,
-              help="Specify the version of the OS sampledata to compare "
+              help="Specify the version of the OS repodata to compare "
                    "against.")
 @click.option('--arch', default='x86_64',
               help="Specify the CPU architecture.")
@@ -154,7 +154,7 @@ def neededby(pkgnames, hint, filter, whatreqs, recommends,
 @click.option('--os', default='Fedora',
               help="Specify the operating system.")
 @click.option('--version', default=25,
-              help="Specify the version of the OS sampledata to compare "
+              help="Specify the version of the OS repodata to compare "
                    "against.")
 @click.option('--arch', default='x86_64',
               help="Specify the CPU architecture.")
@@ -227,7 +227,7 @@ set. This option may be specified multiple times.
 @click.option('--os', default='Fedora',
               help="Specify the operating system.")
 @click.option('--version', default=25,
-              help="Specify the version of the OS sampledata to compare "
+              help="Specify the version of the OS repodata to compare "
                    "against.")
 @click.option('--arch', default='x86_64',
               help="Specify the CPU architecture.")
