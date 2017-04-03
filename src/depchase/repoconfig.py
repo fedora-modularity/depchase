@@ -33,9 +33,17 @@ if LooseVersion(dnf.const.VERSION) < LooseVersion('2.0.0'):
     raise NotImplementedError("DNF 2.x required.")
 
 
-def _is_secondary_arch(arch):
-    if arch in ('x86_64', 'armhfp', 'i386'):
+def _is_secondary_arch(arch, version):
+    if arch is 'x86_64':
         return False
+
+    if arch is 'armhfp' and version >= 20:
+        return False
+
+    if arch is 'i386' and version <= 25:
+        return False
+
+    # All other architectures are alternative
     return True
 
 
@@ -65,11 +73,13 @@ def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
     if os != "Fedora":
         raise NotImplementedError("Only Fedora supported today")
 
+    basearch = dnf.rpm.basearch(arch)
+
     # Create custom configuration to specify the architecture
     config = dnf.conf.Conf()
     subst = dnf.conf.substitutions.Substitutions()
     subst['arch'] = arch
-    subst['basearch'] = dnf.rpm.basearch(arch)
+    subst['basearch'] = basearch
     config.substitutions = subst
 
     base = dnf.Base(conf=config)
@@ -91,12 +101,13 @@ def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
                 365 * 24 * 60 * 60)
 
     # The primary and alternative architectures are stored separately
-    if _is_secondary_arch(arch):
+    if _is_secondary_arch(basearch, version):
         binary_uri = "http://dl.fedoraproject.org/pub/fedora-secondary/" \
-                   "releases/%s/Everything/%s/os" % (version_path, arch)
+                   "releases/%s/Everything/%s/os" % (version_path, basearch)
     else:
         binary_uri = "http://dl.fedoraproject.org/pub/fedora/linux/" \
-                   "releases/%s/Everything/%s/os" % (version_path, arch)
+                   "releases/%s/Everything/%s/os" % (version_path, basearch)
+    print("DEBUG: %s" % binary_uri)
     # Keep the repodata for a year to save bandwidth
     # The frozen repositories do not change
     _setup_repo(base,
