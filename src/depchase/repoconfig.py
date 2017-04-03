@@ -65,7 +65,14 @@ def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
     if os != "Fedora":
         raise NotImplementedError("Only Fedora supported today")
 
-    base = dnf.Base()
+    # Create custom configuration to specify the architecture
+    config = dnf.conf.Conf()
+    subst = dnf.conf.substitutions.Substitutions()
+    subst['arch'] = arch
+    subst['basearch'] = dnf.rpm.basearch(arch)
+    config.substitutions = subst
+
+    base = dnf.Base(conf=config)
 
     if milestone:
         version_path = 'test/%d_%s' % (version, milestone)
