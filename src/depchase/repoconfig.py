@@ -107,7 +107,7 @@ def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
     else:
         binary_uri = "http://dl.fedoraproject.org/pub/fedora/linux/" \
                    "releases/%s/Everything/%s/os" % (version_path, basearch)
-    print("DEBUG: %s" % binary_uri)
+
     # Keep the repodata for a year to save bandwidth
     # The frozen repositories do not change
     _setup_repo(base,
