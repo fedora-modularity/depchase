@@ -125,7 +125,7 @@ def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
     try:
         override_source_uri = \
             "https://fedorapeople.org/groups/modularity/repos/" \
-            "fedora/gencore-override/%s/source/tree" % version_path
+            "fedora/gencore-override/%s/%s/sources" % (version_path, arch)
         # Always update the override repodata
         _setup_repo(base,
                     'depchase-%s-%s-%s-override-source' % (
