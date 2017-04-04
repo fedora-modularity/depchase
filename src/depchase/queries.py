@@ -142,10 +142,12 @@ def get_requirements(parent, reqs, arch, dependencies, ambiguities,
 
         # If there are no dependencies, just return
         if len(required_packages) == 0:
-            print("No package for [%s] required by [%s-%s-%s.%s]" % (
+            print("No package for [%s] required by [%s-%s-%s.%s] "
+                  "on base architecture %s" % (
                 str(require),
                 parent.name, parent.version,
-                parent.release, parent.arch),
+                parent.release, parent.arch,
+                arch),
                   file=sys.stderr)
             continue
 
