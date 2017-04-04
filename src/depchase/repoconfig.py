@@ -50,18 +50,22 @@ def _is_secondary_arch(arch, version):
 def _setup_repo(base, reponame, URI, expire, force_expiration=False):
     repo = dnf.repo.Repo(reponame, base.conf)
 
-    repo.mirrorlist = None
-    repo.metalink = None
-    repo.baseurl = URI
-    repo.name = reponame
-    repo._id = reponame
-    repo.metadata_expire = expire
-    base.repos.add(repo)
-    repo.load()
-    repo.enable()
+    try:
+        repo.mirrorlist = None
+        repo.metalink = None
+        repo.baseurl = URI
+        repo.name = reponame
+        repo._id = reponame
+        repo.metadata_expire = expire
+        base.repos.add(repo)
+        repo.load()
+        repo.enable()
 
-    if force_expiration:
-        repo._md_expire_cache()
+        if force_expiration:
+            repo._md_expire_cache()
+    except dnf.exceptions.RepoError:
+        repo.disable()
+        raise
 
 
 def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
@@ -84,8 +88,10 @@ def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
 
     base = dnf.Base(conf=config)
 
+    print_milestone = 'Final'
     if milestone:
         version_path = 'test/%d_%s' % (version, milestone)
+        print_milestone = milestone
     else:
         version_path = str(version)
 
@@ -122,7 +128,8 @@ def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
             "fedora/gencore-override/%s/source/tree" % version_path
         # Always update the override repodata
         _setup_repo(base,
-                    'depchase-%s-override-source' % version_path,
+                    'depchase-%s-%s-%s-override-source' % (
+                        version, print_milestone, arch),
                     override_source_uri, 0)
 
         override_binary_uri = \
@@ -130,14 +137,16 @@ def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
             "fedora/gencore-override/%s/%s/os" % (version_path, arch)
         # Always update the override repodata
         _setup_repo(base,
-                    'depchase-%s-override' % version_path,
+                    'depchase-%s-%s-%s-override' % (
+                        version, print_milestone, arch),
                     override_binary_uri, 0)
     except dnf.exceptions.RepoError:
         # Likely no override repo exists
         # Print a warning and continue
-        print("WARNING: override repo has not been configured for this "
-              "version/arch combination. Proceeding with official repos "
-              "only.", file=sys.stderr)
+        print("WARNING: override repo has not been configured for "
+              "%s %s on %s. Proceeding with official repos "
+              "only." % (version, print_milestone, arch),
+              file=sys.stderr)
 
     base.fill_sack(load_system_repo=False, load_available_repos=True)
 
