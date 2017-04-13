@@ -24,6 +24,8 @@
 
 __author__ = 'Stephen Gallagher <sgallagh@redhat.com>'
 
+import re
+
 from depchase.util import get_multi_arch
 
 
@@ -39,6 +41,13 @@ def output_results(binaries, sources, arch,
     binary_full_f = open(binary_full_file, 'w')
     source_short_f = open(source_short_file, 'w')
     source_full_f = open(source_full_file, 'w')
+
+    # Special-case source RPMs that have the suffix
+    # .0.override.N because these are just rebuilds of the source RPM
+    # on individual platforms. To make it easier to process the list
+    # into a module metadata file, we'll restore these to their original
+    # names.
+    override_re = re.compile("(.*)\.0\.override\.\d+")
 
     try:
         # Print the complete set of dependencies together
@@ -59,11 +68,24 @@ def output_results(binaries, sources, arch,
 
         for key in sorted(sources, key=sources.get):
             printpkg = sources[key]
+
+            # Special-case source RPMs that have the suffix
+            # .0.override.N because these are just rebuilds of the source RPM
+            # on individual platforms. To make it easier to process the list
+            # into a module metadata file, we'll restore these to their original
+            # names.
+
+            print_release = printpkg.release
+
+            match = override_re.match(printpkg.release)
+            if match:
+                print_release = match.group(1)
+
             source_full_f.write("%d:%s-%s-%s.%s\n" % (
                                 printpkg.epoch,
                                 printpkg.name,
                                 printpkg.version,
-                                printpkg.release,
+                                print_release,
                                 printpkg.arch))
             source_short_f.write("%s\n" % printpkg.name)
 
