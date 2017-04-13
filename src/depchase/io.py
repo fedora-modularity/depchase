@@ -65,7 +65,7 @@ def output_results(binaries, sources, arch,
                                 printpkg.version,
                                 printpkg.release,
                                 printpkg.arch))
-            source_short_f.write("%s" % printpkg.name)
+            source_short_f.write("%s\n" % printpkg.name)
 
     finally:
         source_full_f.close()
