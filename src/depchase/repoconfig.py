@@ -74,7 +74,7 @@ def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
     object for interacting with the repositories.
     """
 
-    if os != "Fedora":
+    if os != "Fedora" and os != "Rawhide":
         raise NotImplementedError("Only Fedora supported today")
 
     basearch = dnf.rpm.basearch(arch)
@@ -88,16 +88,29 @@ def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
 
     base = dnf.Base(conf=config)
 
-    print_milestone = 'Final'
-    if milestone:
-        version_path = 'test/%d_%s' % (version, milestone)
-        print_milestone = milestone
+    alt_arch_base = "http://dl.fedoraproject.org/pub/fedora-secondary/releases/"
+    primary_arch_base = "http://dl.fedoraproject.org/pub/fedora/linux/releases/"
+    if os == "Rawhide":
+        alt_arch_base = "http://dl.fedoraproject.org/pub/fedora-secondary/development/"
+        primary_arch_base = "http://dl.fedoraproject.org/pub/fedora/linux/development/"
+        print_milestone = 'Rawhide'
+        version_path = 'rawhide'
+        # This is a hack; fix it later to auto-detect
+        # We need to do this to ensure that we set up the right primary and
+        # alternative architectures
+        version = 27
+
     else:
-        version_path = str(version)
+        print_milestone = 'Final'
+        if milestone:
+            version_path = 'test/%d_%s' % (version, milestone)
+            print_milestone = milestone
+        else:
+            version_path = str(version)
 
     # The Source RPMs always come from the primary path
-    source_uri = "http://dl.fedoraproject.org/pub/fedora/linux/" \
-                 "releases/%s/Everything/source/tree" % version_path
+    source_uri = "%s/%s/Everything/source/tree" % (
+                 primary_arch_base, version_path)
 
     # Keep the repodata for a year to save bandwidth
     # The frozen repositories do not change
@@ -108,11 +121,11 @@ def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
 
     # The primary and alternative architectures are stored separately
     if _is_secondary_arch(basearch, version):
-        binary_uri = "http://dl.fedoraproject.org/pub/fedora-secondary/" \
-                   "releases/%s/Everything/%s/os" % (version_path, basearch)
+        binary_uri = "%s/%s/Everything/%s/os" % (
+                     alt_arch_base, version_path, basearch)
     else:
-        binary_uri = "http://dl.fedoraproject.org/pub/fedora/linux/" \
-                   "releases/%s/Everything/%s/os" % (version_path, basearch)
+        binary_uri = "%s/%s/Everything/%s/os" % (
+            primary_arch_base, version_path, basearch)
 
     # Keep the repodata for a year to save bandwidth
     # The frozen repositories do not change
@@ -130,7 +143,7 @@ def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
         _setup_repo(base,
                     'depchase-%s-%s-%s-override-source' % (
                         version, print_milestone, arch),
-                    override_source_uri, 0)
+                    override_source_uri, 0, True)
 
         override_binary_uri = \
             "https://fedorapeople.org/groups/modularity/repos/" \
@@ -139,10 +152,13 @@ def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
         _setup_repo(base,
                     'depchase-%s-%s-%s-override' % (
                         version, print_milestone, arch),
-                    override_binary_uri, 0)
+                    override_binary_uri, 0, True)
     except dnf.exceptions.RepoError:
         # Likely no override repo exists
         # Print a warning and continue
+        if os == "Rawhide":
+            # Simple hack to avoid ugly output.
+            version = ''
         print("WARNING: override repo has not been configured for "
               "%s %s on %s. Proceeding with official repos "
               "only." % (version, print_milestone, arch),

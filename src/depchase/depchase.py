@@ -74,7 +74,7 @@ Note: this result may differ between runs depending upon how the list is
 sorted. It is recommended to use --hint instead, where practical.
 """)
 @click.option('--os', default='Fedora',
-              help="Specify the operating system.")
+              help="Specify the operating system. (\"Fedora\",\"Rawhide\")")
 @click.option('--version', default=25,
               help="Specify the version of the OS repodata to compare "
                    "against.")
@@ -152,7 +152,7 @@ def neededby(pkgnames, hint, filter, whatreqs, recommends,
 @click.argument('pkgnames', nargs=-1)
 @click.option('--full-name/--no-full-name', default=False)
 @click.option('--os', default='Fedora',
-              help="Specify the operating system.")
+              help="Specify the operating system. (\"Fedora\",\"Rawhide\")")
 @click.option('--version', default=25,
               help="Specify the version of the OS repodata to compare "
                    "against.")
@@ -225,7 +225,7 @@ Specify a package that you want to identify what pulls it into the complete
 set. This option may be specified multiple times.
 """)
 @click.option('--os', default='Fedora',
-              help="Specify the operating system.")
+              help="Specify the operating system. (\"Fedora\",\"Rawhide\")")
 @click.option('--version', default=25,
               help="Specify the version of the OS repodata to compare "
                    "against.")
