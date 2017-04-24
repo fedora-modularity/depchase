@@ -47,13 +47,13 @@ def _is_secondary_arch(arch, version):
     return True
 
 
-def _setup_repo(base, reponame, URI, expire, force_expiration=False):
+def _setup_repo(base, reponame, uri, expire, force_expiration=False):
     repo = dnf.repo.Repo(reponame, base.conf)
 
     try:
         repo.mirrorlist = None
         repo.metalink = None
-        repo.baseurl = URI
+        repo.baseurl = uri
         repo.name = reponame
         repo._id = reponame
         repo.metadata_expire = expire
