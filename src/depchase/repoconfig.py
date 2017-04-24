@@ -47,7 +47,7 @@ def _is_secondary_arch(arch, version):
     return True
 
 
-def _setup_repo(base, reponame, uri, expire, force_expiration=False):
+def _setup_repo(base, reponame, uri, expire):
     repo = dnf.repo.Repo(reponame, base.conf)
 
     try:
@@ -60,9 +60,6 @@ def _setup_repo(base, reponame, uri, expire, force_expiration=False):
         base.repos.add(repo)
         repo.load()
         repo.enable()
-
-        if force_expiration:
-            repo._md_expire_cache()
     except dnf.exceptions.RepoError:
         repo.disable()
         raise
@@ -85,6 +82,8 @@ def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
     subst['arch'] = arch
     subst['basearch'] = basearch
     config.substitutions = subst
+
+    year = 365 * 24 * 60 * 60
 
     base = dnf.Base(conf=config)
 
@@ -117,7 +116,7 @@ def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
     _setup_repo(base,
                 'depchase-%s-%s-source' % (os, version_path),
                 source_uri,
-                365 * 24 * 60 * 60)
+                year if os != "Rawhide" else 0)
 
     # The primary and alternative architectures are stored separately
     if _is_secondary_arch(basearch, version):
@@ -132,7 +131,7 @@ def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
     _setup_repo(base,
                 'depchase-%s-%s' % (os, version_path),
                 binary_uri,
-                365 * 24 * 60 * 60)
+                year if os != "Rawhide" else 0)
 
     # Override repositories
     try:
@@ -143,7 +142,7 @@ def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
         _setup_repo(base,
                     'depchase-%s-%s-%s-override-source' % (
                         version, print_milestone, arch),
-                    override_source_uri, 0, True)
+                    override_source_uri, 0)
 
         override_binary_uri = \
             "https://fedorapeople.org/groups/modularity/repos/" \
@@ -152,7 +151,7 @@ def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
         _setup_repo(base,
                     'depchase-%s-%s-%s-override' % (
                         version, print_milestone, arch),
-                    override_binary_uri, 0, True)
+                    override_binary_uri, 0)
     except dnf.exceptions.RepoError:
         # Likely no override repo exists
         # Print a warning and continue
