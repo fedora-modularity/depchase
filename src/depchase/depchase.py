@@ -83,6 +83,9 @@ sorted. It is recommended to use --hint instead, where practical.
 @click.option('--milestone', default=None,
               help="Specify the pre-release milestone. If not provided, "
                    "the final release will be used.")
+@click.option('--local-override', default=None,
+              help="Specify a local filesystem repository to use for overrides "
+                   "(repodata that supplements the standard repositories).")
 @click.option('--binary-short-file', default='binaries-short.txt',
               help="The file to contain the short version of the detected "
                    "dependencies. (Just the package name)")
@@ -98,7 +101,8 @@ sorted. It is recommended to use --hint instead, where practical.
                    "dependencies. (Package name, version, architecture, "
                    "etc.)")
 def neededby(pkgnames, hint, filter, whatreqs, recommends,
-             pick_first, os, version, arch, milestone,
+             pick_first, os, version, arch,
+             milestone, local_override,
              binary_short_file, binary_full_file,
              source_short_file, source_full_file):
     """
@@ -106,7 +110,7 @@ def neededby(pkgnames, hint, filter, whatreqs, recommends,
     display them in a human-parseable format.
     """
 
-    query = prep_repositories(os, version, milestone, arch)
+    query = prep_repositories(os, version, milestone, arch, local_override)
 
     dependencies = {}
     ambiguities = []
@@ -161,13 +165,18 @@ def neededby(pkgnames, hint, filter, whatreqs, recommends,
 @click.option('--milestone', default=None,
               help="Specify the pre-release milestone. If not provided, "
                    "the final release will be used.")
-def getsourcerpm(pkgnames, full_name, os, version, arch, milestone):
+@click.option('--local-override', default=None,
+              help="Specify a local filesystem repository to use for overrides "
+                   "(repodata that supplements the standard repositories).")
+def getsourcerpm(pkgnames, full_name, os,
+                 version, arch, milestone,
+                 local_override):
     """
     Look up the SRPMs from which these binary RPMs were generated.
 
     This list will be displayed deduplicated and sorted.
     """
-    query = prep_repositories(os, version, milestone, arch)
+    query = prep_repositories(os, version, milestone, arch, local_override)
 
     srpm_names = {}
     for fullpkgname in pkgnames:
@@ -234,6 +243,9 @@ set. This option may be specified multiple times.
 @click.option('--milestone', default=None,
               help="Specify the pre-release milestone. If not provided, "
                    "the final release will be used.")
+@click.option('--local-override', default=None,
+              help="Specify a local filesystem repository to use for overrides "
+                   "(repodata that supplements the standard repositories).")
 @click.option('--binary-short-file', default='selfhost-binaries-short.txt',
               help="The file to contain the short version of the detected "
                    "dependencies. (Just the package name)")
@@ -251,6 +263,7 @@ set. This option may be specified multiple times.
 def neededtoselfhost(pkgnames, hint, recommends,
                      pick_first, filter, whatreqs,
                      os, version, arch, milestone,
+                     local_override,
                      binary_short_file, binary_full_file,
                      source_short_file, source_full_file):
     """
@@ -259,7 +272,7 @@ def neededtoselfhost(pkgnames, hint, recommends,
     in a human-parseable format.
     """
 
-    query = prep_repositories(os, version, milestone, arch)
+    query = prep_repositories(os, version, milestone, arch, local_override)
 
     binary_pkgs = {}
     source_pkgs = {}

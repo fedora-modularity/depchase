@@ -65,7 +65,8 @@ def _setup_repo(base, reponame, uri, expire):
         raise
 
 
-def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
+def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64',
+                      local_override=None):
     """
     Configures the necessary DNF repositories and returns a dnf.query.Query
     object for interacting with the repositories.
@@ -135,18 +136,26 @@ def prep_repositories(os="Fedora", version=25, milestone=None, arch='x86_64'):
 
     # Override repositories
     try:
-        override_source_uri = \
-            "https://fedorapeople.org/groups/modularity/repos/" \
-            "fedora/gencore-override/%s/%s/sources" % (version_path, arch)
+        if local_override:
+            override_source_uri = \
+                "file://%s/%s/%s/sources" % (local_override, version_path, arch)
+        else:
+            override_source_uri = \
+                "https://fedorapeople.org/groups/modularity/repos/" \
+                "fedora/gencore-override/%s/%s/sources" % (version_path, arch)
         # Always update the override repodata
         _setup_repo(base,
                     'depchase-%s-%s-%s-override-source' % (
                         version, print_milestone, arch),
                     override_source_uri, 0)
 
-        override_binary_uri = \
-            "https://fedorapeople.org/groups/modularity/repos/" \
-            "fedora/gencore-override/%s/%s/os" % (version_path, arch)
+        if local_override:
+            override_binary_uri = \
+                "file://%s/%s/%s/os" % (local_override, version_path, arch)
+        else:
+            override_binary_uri = \
+                "https://fedorapeople.org/groups/modularity/repos/" \
+                "fedora/gencore-override/%s/%s/os" % (version_path, arch)
         # Always update the override repodata
         _setup_repo(base,
                     'depchase-%s-%s-%s-override' % (
