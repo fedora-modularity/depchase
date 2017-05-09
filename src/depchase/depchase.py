@@ -306,7 +306,7 @@ def neededtoselfhost(pkgnames, hint, recommends,
                        if not resolve_ambiguity(binary_pkgs, x)]
 
     # Print the complete set of dependencies together
-    output_results(dependencies, srpms, arch,
+    output_results(binary_pkgs, source_pkgs, arch,
                    binary_short_file, binary_full_file,
                    source_short_file, source_full_file)
 
