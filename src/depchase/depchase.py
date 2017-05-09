@@ -253,7 +253,7 @@ set. This option may be specified multiple times.
               help="The file to contain the long version of the detected "
                    "dependencies. (Package name, version, architecture, "
                    "etc.)")
-@click.option('--source-short-file', default='setlfhost-sources-short.txt',
+@click.option('--source-short-file', default='selfhost-sources-short.txt',
               help="The file to contain the short version of the detected "
                    "dependencies. (Just the package name)")
 @click.option('--source-full-file', default='selfhost-sources-full.txt',
