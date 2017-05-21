@@ -303,7 +303,8 @@ def solve(solver, pkgnames, selfhost=False):
     # We already solved runtime requires, no need to do that twice
     selfhosting = set()
     selfhosting_srcs = set()
-    # We will store text-based view of processed srcs for better performance
+    # We will store text-based view of processed srcs for better performance,
+    # because selections are not free
     srcs_done = set()
     while candq:
         jobs = [pool.Job(solv.Job.SOLVER_INSTALL | solv.Job.SOLVER_SOLVABLE | solv.Job.SOLVER_WEAK, p.id) for p in candq]
