@@ -348,6 +348,7 @@ def solve(solver, pkgnames, selfhost=False):
             solvables = sel.solvables()
             assert len(solvables) == 1
             src = solvables[0]
+            srcs_queued.add(str(src))
             candq.append(src)
 
     return selfhosting, selfhosting_srcs
