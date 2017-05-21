@@ -280,6 +280,19 @@ def fix_deps(pool):
             for dep in deps:
                 s.add_deparray(solv.SOLVABLE_REQUIRES, dep)
 
+def get_sourcepkg(p, s=None, only_name=False):
+    if s is None:
+        s = p.lookup_sourcepkg()[:-4]
+    if only_name:
+        return s
+    # Let's try to find corresponding source
+    sel = p.pool.select(s, solv.Selection.SELECTION_CANON | solv.Selection.SELECTION_SOURCE_ONLY)
+    sel.filter(p.repo.appdata.srcrepo.handle.Selection())
+    assert not sel.isempty()
+    solvables = sel.solvables()
+    assert len(solvables) == 1
+    return solvables[0]
+
 def solve(solver, pkgnames, selfhost=False):
     pool = solver.pool
 
@@ -339,16 +352,10 @@ def solve(solver, pkgnames, selfhost=False):
 
         srcs_queued = set(str(p) for p in candq if p.arch in ("src", "nosrc"))
         for p in newpkgs:
-            s = p.lookup_sourcepkg()[:-4]
+            s = get_sourcepkg(p, only_name=True)
             if s in srcs_done or s in srcs_queued:
                 continue
-            # Let's try to find corresponding source
-            sel = pool.select(s, solv.Selection.SELECTION_CANON | solv.Selection.SELECTION_SOURCE_ONLY)
-            sel.filter(p.repo.appdata.srcrepo.handle.Selection())
-            assert not sel.isempty()
-            solvables = sel.solvables()
-            assert len(solvables) == 1
-            src = solvables[0]
+            src = get_sourcepkg(p, s)
             srcs_queued.add(str(src))
             candq.append(src)
 
