@@ -18,6 +18,7 @@ class Repo(object):
         self.handle = None
         self.cookie = None
         self.extcookie = None
+        self.srcrepo = None
 
     @staticmethod
     def calc_cookie_fp(fp):
@@ -244,8 +245,10 @@ def setup_pool(arch=None):
 
     base = Repo("base", "/home/brain/tmp/26_Alpha/x86_64")
     base_src = Repo("base-source", "/home/brain/tmp/26_Alpha/source")
+    base.srcrepo = base_src
     override = Repo("base-override", "/home/brain/tmp/foo/binaries")
     override_src = Repo("base-override-source", "/home/brain/tmp/foo/sources")
+    override.srcrepo = override_src
     repos = [base, base_src, override, override_src]
     for repo in repos:
         assert repo.load(pool)
@@ -297,14 +300,6 @@ def solve(solver, pkgnames, selfhost=False):
     # We have to =(
     fix_deps(pool)
 
-    # Hack-ish, but we have no way to match binary against sources
-    srcrepo_map = {r.name: None for r in pool.repos if not r.name.endswith("-source")}
-    for r in pool.repos:
-        if not r.name.endswith("-source"):
-            continue
-        srcrepo_map[r.name[:-7]] = r
-    assert None not in srcrepo_map.values()
-
     # We already solved runtime requires, no need to do that twice
     selfhosting = set()
     selfhosting_srcs = set()
@@ -348,7 +343,7 @@ def solve(solver, pkgnames, selfhost=False):
                 continue
             # Let's try to find corresponding source
             sel = pool.select(s, solv.Selection.SELECTION_CANON | solv.Selection.SELECTION_SOURCE_ONLY)
-            sel.filter(srcrepo_map[p.repo.name].Selection())
+            sel.filter(p.repo.appdata.srcrepo.handle.Selection())
             assert not sel.isempty()
             solvables = sel.solvables()
             assert len(solvables) == 1
