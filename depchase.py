@@ -265,20 +265,26 @@ def setup_pool(arch=None):
     return pool
 
 def fix_deps(pool):
-    # Definitely ugly, but world is not without broken dependencies
-    for s in pool.solvables_iter():
-        deps = s.lookup_deparray(solv.SOLVABLE_REQUIRES)
-        modified = False
-        for dep in deps[:]:
-            if dep.str() in ("gnu-efi = 3.0w", "gnu-efi-devel = 3.0w", "pkgconfig(botan-1.10)"):
+    to_fix = (
+        # Weak libcrypt-nss deps due to https://github.com/openSUSE/libsolv/issues/205
+        ("glibc", solv.Selection.SELECTION_NAME,
+         solv.SOLVABLE_RECOMMENDS, lambda s: s.startswith("libcrypt-nss"), solv.SOLVABLE_SUGGESTS),
+        # Shim is not buildable
+        ("shim", solv.Selection.SELECTION_NAME | solv.Selection.SELECTION_WITH_SOURCE,
+         solv.SOLVABLE_REQUIRES, lambda s: s in ("gnu-efi = 3.0w", "gnu-efi-devel = 3.0w"), None),
+    )
+    for txt, flags, before, func, after in to_fix:
+        for s in pool.select(txt, flags).solvables():
+            deps = s.lookup_deparray(before)
+            fixing = [dep for dep in deps if func(str(dep))]
+            for dep in fixing:
                 deps.remove(dep)
-                modified = True
-        if modified:
-            # XXX: use once will be available in libsolv
-            #s.set_deparray(solv.SOLVABLE_REQUIRES, deps)
-            s.unset(solv.SOLVABLE_REQUIRES)
+                if after is not None:
+                    s.add_deparray(after, dep)
+            # Use s.set_deparray() once will be available
+            s.unset(before)
             for dep in deps:
-                s.add_deparray(solv.SOLVABLE_REQUIRES, dep)
+                s.add_deparray(before, dep)
 
 def get_sourcepkg(p, s=None, only_name=False):
     if s is None:
@@ -296,6 +302,9 @@ def get_sourcepkg(p, s=None, only_name=False):
 def solve(solver, pkgnames, selfhost=False):
     pool = solver.pool
 
+    # We have to =(
+    fix_deps(pool)
+
     jobs = []
     # Initial jobs, no conflicting packages
     for n in pkgnames:
@@ -309,9 +318,6 @@ def solve(solver, pkgnames, selfhost=False):
 
     if not selfhost:
         return set(candq), None
-
-    # We have to =(
-    fix_deps(pool)
 
     # We already solved runtime requires, no need to do that twice
     selfhosting = set()
