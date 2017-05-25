@@ -342,8 +342,8 @@ def solve(solver, pkgnames, selfhost=False):
         pool.setpooljobs(pool.getpooljobs() + [pool.Job(solv.Job.SOLVER_FAVOR | solv.Job.SOLVER_SOLVABLE, p.id) for p in newpkgs])
 
         # In new queue only non-solvables are left
-        ncandq = [p for p in candq if solver.get_decisionlevel(p.id) <= 0]
-        if ncandq == candq:
+        raw_decisions = solver.raw_decisions(1)
+        if not raw_decisions:
             # At this point, nothing can be resolved anymore, so let's show problems
             for p in candq:
                 job = pool.Job(solv.Job.SOLVER_INSTALL | solv.Job.SOLVER_SOLVABLE, p.id)
@@ -354,7 +354,7 @@ def solve(solver, pkgnames, selfhost=False):
                 for problem in problems:
                     print(problem)
             sys.exit(1)
-        candq = ncandq
+        candq = [s for s in candq if s.id not in raw_decisions]
 
         srcs_queued = set(str(p) for p in candq if p.arch in ("src", "nosrc"))
         for p in newpkgs:
