@@ -315,13 +315,15 @@ def solve(solver, pkgnames, selfhost=False):
     assert not problems
 
     candq = solver.transaction().newpackages()
+    sources = set(get_sourcepkg(s) for s in candq)
 
     if not selfhost:
-        return set(candq), None
+        return set(candq), sources
 
     # We already solved runtime requires, no need to do that twice
-    selfhosting = set()
+    selfhosting = set(candq)
     selfhosting_srcs = set()
+    candq = list(sources)
     # We will store text-based view of processed srcs for better performance,
     # because selections are not free
     srcs_done = set()
