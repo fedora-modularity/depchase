@@ -1,3 +1,4 @@
+import configparser
 import itertools
 import logging
 import os
@@ -237,19 +238,28 @@ def load_stub(repodata):
         return repo.load_ext(repodata)
     return False
 
-def setup_pool(arch=None):
+def setup_repos(conffile):
+    conf = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+
+    with open(conffile, "r") as cfg:
+        conf.read_file(cfg)
+
+    repos = {}
+    for sect in conf.sections():
+        repos[sect] = Repo(sect, conf[sect]["path"])
+    for repo in repos.values():
+        repo.srcrepo = repos.get("{}-source".format(repo.name))
+    return list(repos.values())
+
+def setup_pool(arch, repos=()):
     pool = solv.Pool()
     #pool.set_debuglevel(2)
     pool.setarch(arch)
     pool.set_loadcallback(load_stub)
 
-    base = Repo("base", "/home/brain/tmp/26_Alpha/x86_64")
-    base_src = Repo("base-source", "/home/brain/tmp/26_Alpha/source")
-    base.srcrepo = base_src
-    override = Repo("base-override", "/home/brain/tmp/foo/binaries")
-    override_src = Repo("base-override-source", "/home/brain/tmp/foo/sources")
-    override.srcrepo = override_src
-    repos = [base, base_src, override, override_src]
+    for repo in repos:
+        repo.baseurl = repo.baseurl.format(arch=arch)
+
     for repo in repos:
         assert repo.load(pool)
         if repo.name.endswith("-override"):
@@ -370,12 +380,15 @@ def solve(solver, pkgnames, selfhost=False):
     return selfhosting, selfhosting_srcs
 
 @click.group()
-@click.option("-a", "--arch", default=None,
+@click.option("-a", "--arch", required=True,
               help="Specify the CPU architecture.")
+@click.option("-c", "--config", required=True, type=click.Path(exists=True),
+              help="Path to configuration.")
 @click.option("-v", "--verbose", count=True)
 @click.pass_context
-def cli(ctx, arch, verbose):
+def cli(ctx, arch, config, verbose):
     ctx.obj["arch"] = arch
+    ctx.obj["config"] = config
     ctx.obj["verbose"] = verbose
     log_conf = {}
     if verbose == 1:
@@ -399,7 +412,7 @@ For example, it is recommended to use --hint=glibc-minimal-langpack.
               help="Look up the build dependencies as well.")
 @click.pass_context
 def resolve(ctx, pkgnames, recommends, hint, selfhost):
-    pool = setup_pool(ctx.obj["arch"])
+    pool = setup_pool(ctx.obj["arch"], setup_repos(ctx.obj["config"]))
 
     # Set up initial hints
     favorq = []

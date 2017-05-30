@@ -1,0 +1,12 @@
+[DEFAULT]
+basedir = /home/brain/Projects/fedora-modularity/depchase/repos
+
+[base]
+path = ${DEFAULT:basedir}/26_Alpha/{arch}/os
+[base-source]
+path = ${DEFAULT:basedir}/26_Alpha/{arch}/sources
+
+[base-override]
+path = ${DEFAULT:basedir}/override/{arch}/os
+[base-override-source]
+path = ${DEFAULT:basedir}/override/{arch}/sources
