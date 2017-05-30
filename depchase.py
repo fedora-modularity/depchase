@@ -6,9 +6,9 @@ import sys
 import tempfile
 import click
 import solv
-import xdg
 
-CACHEDIR = os.path.join(xdg.XDG_CACHE_HOME, "depchase")
+XDG_CACHE_HOME = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache")
+CACHEDIR = os.path.join(XDG_CACHE_HOME, "depchase")
 
 logger = logging.getLogger("depchase")
 
