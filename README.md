@@ -19,3 +19,29 @@ $ python3 setup.py install --user
 ```
 $ depchase -a x86_64 -c repos.cfg resolve [--selfhost] foo --hint bar
 ```
+
+### Output
+
+Output is a list of binary and source packages which were required for
+resolution. You can parse them into multiple files using simple bash
+script:
+
+```bash
+#!/bin/bash -eu
+
+PREFIX=$1
+> $PREFIX-binary-packages-full.txt
+> $PREFIX-binary-packages-short.txt
+> $PREFIX-source-packages-full.txt
+> $PREFIX-source-packages-short.txt
+while read -r nevra; do
+  [[ "$nevra" == *.src || "$nevra" == *.nosrc ]] && type_="source" || type_="binary"
+  name=${nevra%-*-*}
+  echo "$nevra" >> $PREFIX-$type_-packages-full.txt
+  echo "$name" >> $PREFIX-$type_-packages-short.txt
+done
+
+for f in $PREFIX-{binary,source}-packages-{full,short}.txt; do
+  sort -u $f -o $f
+done
+```
