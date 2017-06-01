@@ -41,6 +41,7 @@ while read -r nevra; do
   echo "$name" >> $PREFIX-$type_-packages-short.txt
 done
 
+export LC_ALL=C
 for f in $PREFIX-{binary,source}-packages-{full,short}.txt; do
   sort -u $f -o $f
 done
