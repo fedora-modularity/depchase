@@ -6,7 +6,10 @@ import os
 import sys
 import tempfile
 import click
+import smartcols
 import solv
+import functools
+import timeit
 
 XDG_CACHE_HOME = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache")
 CACHEDIR = os.path.join(XDG_CACHE_HOME, "depchase")
@@ -261,6 +264,7 @@ def setup_pool(arch, repos=()):
     for repo in repos:
         repo.baseurl = repo.baseurl.format(arch=arch)
 
+    start = timeit.default_timer()
     for repo in repos:
         assert repo.load(pool)
         if repo.name.endswith("-override"):
@@ -272,6 +276,8 @@ def setup_pool(arch, repos=()):
             repo.updateaddedprovides(addedprovides)
 
     pool.createwhatprovides()
+    end = timeit.default_timer()
+    logger.debug("Load repos: {}s".format(end - start))
 
     return pool
 
@@ -283,6 +289,9 @@ def fix_deps(pool):
         # Shim is not buildable
         ("shim", solv.Selection.SELECTION_NAME | solv.Selection.SELECTION_WITH_SOURCE,
          solv.SOLVABLE_REQUIRES, lambda s: s in ("gnu-efi = 3.0w", "gnu-efi-devel = 3.0w"), None),
+        # Rust has useless dependency on rust-rpm-macro -> python3-rust2rpm -> python3-tqdm -> python3-matplotlib -> ...
+        ("rust", solv.Selection.SELECTION_NAME,
+         solv.SOLVABLE_REQUIRES, lambda s: s == "rust-rpm-macro", None),
     )
     for txt, flags, before, func, after in to_fix:
         for s in pool.select(txt, flags).solvables():
@@ -310,12 +319,93 @@ def get_sourcepkg(p, s=None, only_name=False):
     assert len(solvables) == 1
     return solvables[0]
 
+def alternatives_table(solver):
+    tb = smartcols.Table()
+    tb.title = "Alternatives"
+    tb.colors = True
+    #tb.colors = os.isatty(sys.stdout.fileno())
+    cl_num = tb.new_column("ID")
+    cl_num.right = True
+    cl_info = tb.new_column("INFO")
+    for alt in solver.all_alternatives():
+        if alt.type == solv.Alternative.SOLVER_ALTERNATIVE_TYPE_RECOMMENDS:
+            raise NotImplementedError
+        elif alt.type == solv.Alternative.SOLVER_ALTERNATIVE_TYPE_RULE:
+            for rinfo in alt.rule.allinfos():
+                if rinfo.type == solv.Solver.SOLVER_RULE_JOB:
+                    raise NotImplementedError
+                elif rinfo.type == solv.Solver.SOLVER_RULE_PKG_REQUIRES:
+                    s = "{} requires {}".format(rinfo.solvable, rinfo.dep)
+                else:
+                    raise NotImplementedError
+        else:
+            assert False
+        if [l for l in tb.lines() if str(l[cl_info].data) == s]:
+            return tb
+        ln = tb.new_line()
+        ln[cl_num] = "0"
+        ln[cl_info] = s
+        num = 1
+        raw_choices = alt.choices_raw()
+        for choice in alt.choices():
+            ln = tb.new_line()
+            ln[cl_num] = str(num)
+            if choice == alt.chosen:
+                ln[cl_info].color = "green"
+                ln[cl_info] = "+ {}".format(choice)
+            elif -choice.id in raw_choices:
+                # Auto-minimized
+                ln[cl_info].color = "blue"
+                ln[cl_info] = "- {}".format(choice)
+            else:
+                ln[cl_info] = "  {}".format(choice)
+            num += 1
+
+    return tb
+
+def rules_table(solver, pkgs=None):
+    if pkgs is None:
+        pkgs = [solv.XSolvable(solver.pool, i) for i in solver.raw_decisions(1)]
+
+    tb = smartcols.Table()
+    cl = tb.new_column("INFO")
+    cl.tree = True
+    for p in pkgs:
+        reason, rule = solver.describe_decision(p)
+        if reason == solv.Solver.SOLVER_REASON_UNRELATED:
+            continue
+
+        if reason == solv.Solver.SOLVER_REASON_WEAKDEP:
+            raise NotImplementedError
+
+        ln = tb.new_line()
+        ln[cl] = str(p)
+        if rule is not None:
+            for info in rule.allinfos():
+                if info.type == solv.Solver.SOLVER_RULE_JOB:
+                    s = "requested by user"
+                elif info.type == solv.Solver.SOLVER_RULE_PKG_REQUIRES:
+                    s = "{} requires {}".format(info.solvable, info.dep)
+                else:
+                    print(info.type)
+                    raise NotImplementedError
+                lnr = tb.new_line(ln)
+                lnr[cl] = s
+        else:
+            assert False
+
+    return tb
+
 def solve(solver, pkgnames, selfhost=False):
     pool = solver.pool
 
     # We have to =(
+    start = timeit.default_timer()
     fix_deps(pool)
+    end = timeit.default_timer()
+    logger.debug("\"Fixing\" deps: {}s".format(end - start))
 
+    start = timeit.default_timer()
     jobs = []
     # Initial jobs, no conflicting packages
     for n in pkgnames:
@@ -324,13 +414,21 @@ def solve(solver, pkgnames, selfhost=False):
         jobs += sel.jobs(solv.Job.SOLVER_INSTALL)
     problems = solver.solve(jobs)
     assert not problems
+    end = timeit.default_timer()
+    logger.debug("Runtime depsolve: {}s".format(end - start))
 
     candq = solver.transaction().newpackages()
     sources = set(get_sourcepkg(s) for s in candq)
 
+    logger.debug(alternatives_table(solver))
+    logger.debug(rules_table(solver))
+
     if not selfhost:
         return set(candq), sources
 
+    #solver.write_testcase("/home/brain/tmp-debug")
+
+    start = timeit.default_timer()
     # We already solved runtime requires, no need to do that twice
     selfhosting = set(candq)
     selfhosting_srcs = set()
@@ -349,11 +447,24 @@ def solve(solver, pkgnames, selfhost=False):
                 selfhosting_srcs.add(p)
                 newpkgs.remove(p)
                 continue
+            #if p.name in ("lato-fonts",):
+            #    reason, rule = solver.describe_decision(p)
+            #    for info in rule.allinfos():
+            #        if info.type == solv.Solver.SOLVER_RULE_JOB:
+            #            # Not interested in user requests
+            #            continue
+            #        elif info.type == solv.Solver.SOLVER_RULE_PKG_REQUIRES:
+            #            print("{} ← {} requires {}".format(p, info.solvable, info.dep))
+            #        else:
+            #            assert False
         selfhosting |= newpkgs
+        logger.debug(alternatives_table(solver))
+        logger.debug(rules_table(solver))
 
         # SOLVER_FAVOR packages which we already solved which will help us to get small dependency chain
         pool.setpooljobs(pool.getpooljobs() + [pool.Job(solv.Job.SOLVER_FAVOR | solv.Job.SOLVER_SOLVABLE, p.id) for p in newpkgs])
 
+        #print(alternatives_table(solver))
         # In new queue only non-solvables are left
         raw_decisions = solver.raw_decisions(1)
         if not raw_decisions:
@@ -377,6 +488,8 @@ def solve(solver, pkgnames, selfhost=False):
             src = get_sourcepkg(p, s)
             srcs_queued.add(str(src))
             candq.append(src)
+    end = timeit.default_timer()
+    logger.debug("Self-hosting depsolve: {}s".format(end - start))
 
     return selfhosting, selfhosting_srcs
 
