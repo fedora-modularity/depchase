@@ -431,5 +431,26 @@ def resolve(ctx, pkgnames, recommends, hint, selfhost):
     for p in itertools.chain(binary, source or ()):
         print(p)
 
+@cli.command("print-reldeps")
+@click.argument("pkg")
+@click.pass_context
+def print_reldeps(ctx, pkg):
+    pool = setup_pool(ctx.obj["arch"], setup_repos(ctx.obj["config"]))
+
+    sel = pool.select(pkg, solv.Selection.SELECTION_NAME)
+    assert not sel.isempty(), "Package can't be found"
+    found = sel.solvables()
+    assert len(found) == 1, "More matching solvables were found, {}".format(found)
+    s = found[0]
+
+    reldep2str = {solv.SOLVABLE_REQUIRES: "requires",
+                  solv.SOLVABLE_RECOMMENDS: "recommends",
+                  solv.SOLVABLE_SUGGESTS: "suggests",
+                  solv.SOLVABLE_SUPPLEMENTS: "supplements",
+                  solv.SOLVABLE_ENHANCES: "enhances"}
+    for reltype, relstr in reldep2str.items():
+        for dep in s.lookup_deparray(reltype):
+            print("{}: {}".format(relstr, dep))
+
 if __name__ == "__main__":
     cli(obj={})
