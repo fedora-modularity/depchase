@@ -305,7 +305,7 @@ def get_sourcepkg(p, s=None, only_name=False):
     # Let's try to find corresponding source
     sel = p.pool.select(s, solv.Selection.SELECTION_CANON | solv.Selection.SELECTION_SOURCE_ONLY)
     sel.filter(p.repo.appdata.srcrepo.handle.Selection())
-    assert not sel.isempty()
+    assert not sel.isempty(), "Could not find source package for {}".format(s)
     solvables = sel.solvables()
     assert len(solvables) == 1
     return solvables[0]
@@ -320,7 +320,7 @@ def solve(solver, pkgnames, selfhost=False):
     # Initial jobs, no conflicting packages
     for n in pkgnames:
         sel = pool.select(n, solv.Selection.SELECTION_NAME | solv.Selection.SELECTION_DOTARCH)
-        assert not sel.isempty()
+        assert not sel.isempty(), "Could not find package for {}".format(n)
         jobs += sel.jobs(solv.Job.SOLVER_INSTALL)
     problems = solver.solve(jobs)
     assert not problems
