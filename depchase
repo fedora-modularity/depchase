@@ -249,7 +249,11 @@ def setup_repos(conffile):
     for sect in conf.sections():
         repos[sect] = Repo(sect, conf[sect]["path"])
     for repo in repos.values():
+        if repo.name.endswith("-source"):
+            continue
         repo.srcrepo = repos.get("{}-source".format(repo.name))
+        if repo.srcrepo is None:
+            raise RuntimeError("{}-source repo is not defined".format(repo.name))
     return list(repos.values())
 
 def setup_pool(arch, repos=()):
