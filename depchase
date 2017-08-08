@@ -6,6 +6,7 @@ import os
 import sys
 import tempfile
 import click
+import smartcols
 import solv
 
 XDG_CACHE_HOME = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache")
@@ -314,6 +315,38 @@ def get_sourcepkg(p, s=None, only_name=False):
     assert len(solvables) == 1
     return solvables[0]
 
+def print_transaction(pool, transaction):
+    candq = transaction.newpackages()
+    if logger.getEffectiveLevel() <= logging.INFO:
+        tb = smartcols.Table()
+        tb.title = "DEPENDENCY INFORMATION"
+        cl = tb.new_column("INFO")
+        cl.tree = True
+        cl_match = tb.new_column("MATCH")
+        for p in candq:
+            ln = tb.new_line()
+            ln[cl] = str(p)
+            for dep in p.lookup_deparray(solv.SOLVABLE_REQUIRES):
+                lns = tb.new_line(ln)
+                lns[cl] = str(dep)
+                matches = set(s for s in candq if s.matchesdep(solv.SOLVABLE_PROVIDES, dep))
+                if not matches and str(dep).startswith("/"):
+                    # Append provides by files
+                    # TODO: use Dataiterator for getting filelist
+                    matches = set(s for s in pool.select(str(dep), solv.Selection.SELECTION_FILELIST).solvables() if s in candq)
+                # It was possible to resolve set, so something is wrong here
+                assert matches
+                first = True
+                for m in matches:
+                    if first:
+                        lnc = lns
+                    else:
+                        lnss = tb.new_line(lns)
+                        lnc = lnss
+                        first = False
+                    lnc[cl_match] = str(m)
+        logger.info(tb)
+
 def solve(solver, pkgnames, selfhost=False):
     pool = solver.pool
 
@@ -329,6 +362,7 @@ def solve(solver, pkgnames, selfhost=False):
     problems = solver.solve(jobs)
     assert not problems
 
+    print_transaction(pool, solver.transaction())
     candq = solver.transaction().newpackages()
     sources = set(get_sourcepkg(s) for s in candq)
 
@@ -345,6 +379,7 @@ def solve(solver, pkgnames, selfhost=False):
     while candq:
         jobs = [pool.Job(solv.Job.SOLVER_INSTALL | solv.Job.SOLVER_SOLVABLE | solv.Job.SOLVER_WEAK, p.id) for p in candq]
         solver.solve(jobs)
+        print_transaction(pool, solver.transaction())
         # We are interested to operate only on really new packages below
         newpkgs = set(solver.transaction().newpackages()) - selfhosting
         for p in newpkgs.copy():
