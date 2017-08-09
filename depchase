@@ -39,7 +39,7 @@ class Repo(object):
         return chksum.raw()
 
     def cachepath(self, ext=None):
-        path = self.name.replace(".", "_")
+        path = "{}-{}".format(self.name.replace(".", "_"), self.baseurl)
         if ext:
             path = "{}-{}.solvx".format(path, ext)
         else:
