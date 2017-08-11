@@ -363,7 +363,7 @@ def solve(solver, pkgnames, selfhost=False):
     assert not problems
 
     print_transaction(pool, solver.transaction())
-    candq = solver.transaction().newpackages()
+    candq = [s for s in solver.transaction().newpackages() if s.arch not in ("src", "nosrc")]
     sources = set(get_sourcepkg(s) for s in candq)
 
     if not selfhost:
