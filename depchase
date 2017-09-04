@@ -511,6 +511,12 @@ def print_sourcepkg(ctx, pkg):
 def pkgs_by_sourcepkg(ctx, sourcepkg):
     pool = setup_pool(ctx.obj["arch"], setup_repos(ctx.obj["config"]))
 
+    sel = pool.select(sourcepkg, solv.Selection.SELECTION_NAME)
+    if not sel.isempty():
+        found = sel.solvables()
+        assert len(found) == 1, "More matching solvables were found, {}".format(found)
+        sourcepkg = get_sourcepkg(found[0], only_name=True)
+
     for p in (s for s in pool.solvables if s.arch not in ("src", "nosrc")):
         if get_sourcepkg(p, only_name=True) == sourcepkg:
             print(p)
