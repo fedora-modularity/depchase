@@ -505,5 +505,15 @@ def print_sourcepkg(ctx, pkg):
 
     print(get_sourcepkg(s, only_name=True))
 
+@cli.command("pkgs-by-sourcepkg")
+@click.argument("sourcepkg")
+@click.pass_context
+def pkgs_by_sourcepkg(ctx, sourcepkg):
+    pool = setup_pool(ctx.obj["arch"], setup_repos(ctx.obj["config"]))
+
+    for p in (s for s in pool.solvables if s.arch not in ("src", "nosrc")):
+        if get_sourcepkg(p, only_name=True) == sourcepkg:
+            print(p)
+
 if __name__ == "__main__":
     cli(obj={})
