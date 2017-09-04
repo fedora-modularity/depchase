@@ -491,5 +491,19 @@ def print_reldeps(ctx, pkg):
         for dep in s.lookup_deparray(reltype):
             print("{}: {}".format(relstr, dep))
 
+@cli.command("print-sourcepkg")
+@click.argument("pkg")
+@click.pass_context
+def print_sourcepkg(ctx, pkg):
+    pool = setup_pool(ctx.obj["arch"], setup_repos(ctx.obj["config"]))
+
+    sel = pool.select(pkg, solv.Selection.SELECTION_NAME)
+    assert not sel.isempty(), "Package can't be found"
+    found = sel.solvables()
+    assert len(found) == 1, "More matching solvables were found, {}".format(found)
+    s = found[0]
+
+    print(get_sourcepkg(s, only_name=True))
+
 if __name__ == "__main__":
     cli(obj={})
