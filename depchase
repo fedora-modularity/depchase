@@ -479,7 +479,7 @@ def resolve(ctx, pkgnames, recommends, hint, selfhost):
 def print_reldeps(ctx, pkg):
     pool = setup_pool(ctx.obj["arch"], setup_repos(ctx.obj["config"]))
 
-    sel = pool.select(pkg, solv.Selection.SELECTION_NAME)
+    sel = pool.select(pkg, solv.Selection.SELECTION_NAME | solv.Selection.SELECTION_DOTARCH)
     assert not sel.isempty(), "Package can't be found"
     found = sel.solvables()
     assert len(found) == 1, "More matching solvables were found, {}".format(found)
@@ -500,7 +500,7 @@ def print_reldeps(ctx, pkg):
 def print_sourcepkg(ctx, pkg):
     pool = setup_pool(ctx.obj["arch"], setup_repos(ctx.obj["config"]))
 
-    sel = pool.select(pkg, solv.Selection.SELECTION_NAME)
+    sel = pool.select(pkg, solv.Selection.SELECTION_NAME | solv.Selection.SELECTION_DOTARCH)
     assert not sel.isempty(), "Package can't be found"
     found = sel.solvables()
     assert len(found) == 1, "More matching solvables were found, {}".format(found)
@@ -514,7 +514,7 @@ def print_sourcepkg(ctx, pkg):
 def pkgs_by_sourcepkg(ctx, sourcepkg):
     pool = setup_pool(ctx.obj["arch"], setup_repos(ctx.obj["config"]))
 
-    sel = pool.select(sourcepkg, solv.Selection.SELECTION_NAME)
+    sel = pool.select(sourcepkg, solv.Selection.SELECTION_NAME | solv.Selection.SELECTION_DOTARCH)
     if not sel.isempty():
         found = sel.solvables()
         assert len(found) == 1, "More matching solvables were found, {}".format(found)
