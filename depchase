@@ -360,7 +360,10 @@ def solve(solver, pkgnames, selfhost=False):
         assert not sel.isempty(), "Could not find package for {}".format(n)
         jobs += sel.jobs(solv.Job.SOLVER_INSTALL)
     problems = solver.solve(jobs)
-    assert not problems
+    if problems:
+        for problem in problems:
+            print(problem)
+        sys.exit(1)
 
     print_transaction(pool, solver.transaction())
     candq = [s for s in solver.transaction().newpackages() if s.arch not in ("src", "nosrc")]
