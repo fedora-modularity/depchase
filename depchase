@@ -268,7 +268,7 @@ def setup_pool(arch, repos=()):
 
     for repo in repos:
         assert repo.load(pool)
-        if repo.name.endswith("-override"):
+        if "override" in repo.name:
             repo.handle.priority = 99
 
     addedprovides = pool.addfileprovides_queue()
