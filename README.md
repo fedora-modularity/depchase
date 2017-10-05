@@ -7,6 +7,7 @@ requirements of package(s).
 
 - python3-solv
 - python3-click
+- python3-smartcols
 
 ## Installation
 
