@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import configparser
+import functools
 import itertools
 import logging
 import os
@@ -315,6 +316,14 @@ def get_sourcepkg(p, s=None, only_name=False):
     assert len(solvables) == 1
     return solvables[0]
 
+@functools.lru_cache(maxsize=None)
+def whatprovides(pool, dep):
+    sel = pool.matchdepid(dep, solv.Selection.SELECTION_PROVIDES, solv.SOLVABLE_PROVIDES)
+    if sel.isempty() and str(dep).startswith("/"):
+        # TODO: use Dataiterator for getting filelist
+        sel = pool.select(str(dep), solv.Selection.SELECTION_FILELIST)
+    return set(sel.solvables())
+
 def print_transaction(pool, transaction):
     candq = transaction.newpackages()
     if logger.getEffectiveLevel() <= logging.INFO:
@@ -329,13 +338,10 @@ def print_transaction(pool, transaction):
             for dep in p.lookup_deparray(solv.SOLVABLE_REQUIRES):
                 lns = tb.new_line(ln)
                 lns[cl] = str(dep)
-                matches = set(s for s in candq if s.matchesdep(solv.SOLVABLE_PROVIDES, dep))
-                if not matches and str(dep).startswith("/"):
-                    # Append provides by files
-                    # TODO: use Dataiterator for getting filelist
-                    matches = set(s for s in pool.select(str(dep), solv.Selection.SELECTION_FILELIST).solvables() if s in candq)
+                matches = whatprovides(pool, dep)
                 # It was possible to resolve set, so something is wrong here
                 assert matches
+                matches = set(s for s in matches if s in candq)
                 first = True
                 for m in matches:
                     if first:
