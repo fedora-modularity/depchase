@@ -5,7 +5,7 @@ requirements of package(s).
 
 ## Setup
 
-- python3-solv
+- python3-solv >= 0.6.30-3.git.2887.97b8c0c (https://copr.fedorainfracloud.org/coprs/ignatenkobrain/libsolv-latest/ as temporary workaround)
 - python3-click
 - python3-smartcols
 
