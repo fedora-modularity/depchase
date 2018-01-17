@@ -313,7 +313,7 @@ def get_sourcepkg(p, s=None, only_name=False):
     sel.filter(p.repo.appdata.srcrepo.handle.Selection())
     assert not sel.isempty(), "Could not find source package for {}".format(s)
     solvables = sel.solvables()
-    assert len(solvables) == 1
+    assert len(solvables) == 1, "Found multiple source packages for {}".format(s)
     return solvables[0]
 
 @functools.lru_cache(maxsize=None)
